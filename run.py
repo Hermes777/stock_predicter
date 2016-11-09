@@ -1,5 +1,6 @@
 from flask import Flask
 import tushare as ts
+import predictor as pred
 app = Flask(__name__)
 
 @app.route('/')
@@ -11,15 +12,20 @@ def hello_world():
 @app.route('/stock/<post_id>')
 def show_post(post_id):
 	# show the post with the given id, the id is an integer
+	e=pred.predictor(post_id,"hmm")
+	e.train()
 	_index=ts.get_hist_data(post_id)
+
 	temp="<body>\n"
 	temp+="<p>open:"+str(_index['open'][0])+"</p>"
 	temp+="<p>close:"+str(_index['close'][0])+"</p>"
 	temp+="<p>ma5:"+str(_index['ma5'][0])+"</p>"
 	temp+="<p>ma10:"+str(_index['ma10'][0])+"</p>"
 	temp+="<p>ma20:"+str(_index['ma20'][0])+"</p>"
+	temp+="<p>prediction result:"+str(e.test())+"</p>"
+	#temp+="<p>pred:"+str()+"</p>"
 	temp+="</body>"
-	return render_template('dsv.html', post_id=post_id)
+	return temp;#render_template('dsv.html', post_id=post_id)
 
 if __name__ == '__main__':
 	app.run()
