@@ -3,6 +3,7 @@ import numpy as np
 import tushare as ts
 import random as rd
 import pylab as pl
+import cPickle as pickle
 
 
 class predictor:
@@ -303,11 +304,14 @@ class predictor:
 		print(self.A)
 		print(self.B)
 		print(self.pi)
+		pickle.dump([self.alpha,self.mu,self.sigma,self.A,self.B,self.pi],open('model','w'))
 
 
 	def Gaussian_Hmm_viterbi(self,Theta,N,K):
 		T=len(Theta)
 		alpha=[[0.0]*N for x in range(T)]
+		_next=[[0]*N for x in range(T)]
+		ans=[0]*T
 		sum_alpha=0.00
 		for i in range(N):
 			for k in range(K):
@@ -315,6 +319,7 @@ class predictor:
 			sum_alpha+=alpha[0][i]
 		for i in range(N):
 			alpha[0][i]/=sum_alpha
+			_next[0][i]=-1
 		for t in range(1,T):
 			sum_alpha=0.0
 			for i in range(N):
@@ -322,6 +327,7 @@ class predictor:
 				for j in range(N):
 					if alpha[t-1][j]*self.A[j][i]>alpha[t][i]:
 						alpha[t][i]=alpha[t-1][j]*self.A[j][i]
+						_next[t][i]=j
 				multi=0.0
 				for k in range(K):
 					multi+=(self.B[i][k]*Theta[t][k])
@@ -329,21 +335,37 @@ class predictor:
 				sum_alpha+=alpha[t][i]
 			for i in range(N):
 				alpha[t][i]/=sum_alpha
-			ans=np.argmax(alpha[t])
-			print ans,t
+		
+		ans[T-1]=np.argmax(alpha[T-1])
+		for t in range(1,T):
+			ans[T-t-1]=_next[T-t][ans[T-t]]
+		print ans,t
+		for t in range(T):
+			if(ans[t]==0):
+				pl.plot(t,self.price[t],'or')
+			if(ans[t]==1):
+				pl.plot(t,self.price[t],'ob')
+			if(ans[t]==2):
+				pl.plot(t,self.price[t],'oy')
+			if(ans[t]==3):
+				pl.plot(t,self.price[t],'og')
+			if(ans[t]==4):
+				pl.plot(t,self.price[t],'ob')
+		pl.show()
 		
 
 
 	def test(self):
 		st=50
-		data=ts.get_hist_data('002496')
-		test_price=data['close'][:st]*100
+		data=ts.get_hist_data('000002')
+		self.price=data['close'][:st]*100
 		test_price_delta=data['price_change'][:st]*100
 		test_price_delta=list(test_price_delta)
 		test_price_delta.reverse()
-		print test_price
-		test_price=list(test_price)
-		test_price.reverse()
+		#print test_price
+		self.price=list(self.price)
+		self.price.reverse()
+		[self.alpha,self.mu,self.sigma,self.A,self.B,self.pi]=pickle.load(open('model','r'))
 
 		observation=self.GMM_render(test_price_delta,8)
 		self.Gaussian_Hmm_viterbi(observation,3,8)
@@ -355,7 +377,7 @@ class predictor:
 		
 def main():
 	e=predictor("000002","hmm")
-	e.train()
+	#e.train()
 	e.test()
 
 if __name__ == '__main__':
