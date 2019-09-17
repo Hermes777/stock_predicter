@@ -1,2 +1,2 @@
 # stock_predicter
-a stock predicter using hidden markov model or rnn
+a stock predicter using hidden markov model
